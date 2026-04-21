@@ -9,8 +9,12 @@ data.
 Payload are destroying into crumbs. Every crumb have a random part of payload,
 and service info for collect this crumbs into a full cookie. Each crumb have flowID
 and seq position.
+
+![raw to encrypted]https://github.com/bla1z3198/crumble/blob/master/Pictures/raw%20to%20encrypted.png
 ## Crumb struct
 **Crumb** - is a main structure which contains payload and service info, as follows:
+
+![encrypted to crumbs]https://github.com/bla1z3198/crumble/blob/master/Pictures/encrypted%20to%20crumbs.png
 
 ```
 type Crumb struct {
@@ -32,7 +36,7 @@ type Crumb struct {
 
 For example crusher can create a random number of flows (goroutines), and each crumb
 have an unique **FlowID** and **Seq**. So, for ident correct sequence of **crumbs**, **collector** is need
-this service info (FlowID and Seq). Then
+this service info (FlowID and Seq).
 
 ## Random system
 Crusher uses random numbers in a **Flags** and **PayloadLen** define. With **90%** chance next flag
