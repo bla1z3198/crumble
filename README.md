@@ -1,3 +1,4 @@
+##Crusher
 Crusher package contains `crusher.go` file, which crush 
 packets a random number of pieces of random sizes.
 ## About
@@ -8,7 +9,6 @@ data.
 Payload are destroying into crumbs. Every crumb have a random part of payload,
 and service info for collect this crumbs into a full cookie. Each crumb have flowID
 and seq position.
-![[raw to encrypted.png]]
 ## Crumb struct
 **Crumb** - is a main structure which contains payload and service info, as follows:
 
@@ -34,8 +34,6 @@ For example crusher can create a random number of flows (goroutines), and each c
 have an unique **FlowID** and **Seq**. So, for ident correct sequence of **crumbs**, **collector** is need
 this service info (FlowID and Seq). Then
 
-
-![[encrypted to crumbs.png]]
 ## Random system
 Crusher uses random numbers in a **Flags** and **PayloadLen** define. With **90%** chance next flag
 will be "**DATA**", and with chance **10%** next flag will be "**FAKE**". **Payloadlen** now are full random
