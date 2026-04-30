@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"crusher/crusher"
-	"crusher/encryptor"
 )
 
 var (
@@ -33,7 +32,5 @@ func Wrap(crumb crusher.Crumb) []byte {
 	copy(bytes[37+len(crumb.Payload):],
 		crumb.Padding)
 
-	encrypted_bytes := encryptor.Encryption(bytes[25:])
-
-	return encrypted_bytes
+	return bytes
 }

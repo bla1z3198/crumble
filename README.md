@@ -1,6 +1,4 @@
-##Crusher
-Crusher package contains `crusher.go` file, which crush 
-packets a random number of pieces of random sizes.
+# Crumble v1t(testing accuracy of divide into parts)
 ## About
 Conditionally, origin packet divides into crumbs, which have 
 a random number of random sizes pieces of, previously, encrypted
@@ -9,40 +7,38 @@ data.
 Payload are destroying into crumbs. Every crumb have a random part of payload,
 and service info for collect this crumbs into a full cookie. Each crumb have flowID
 and seq position.
-
-![raw to encrypted]https://github.com/bla1z3198/crumble/blob/master/Pictures/raw%20to%20encrypted.png
+## Structure
+connector.go - main .go file
+crusher - crush into crumbs
+wrapper - wrap crumbs into byte slice
+randomizer - random numbers for crumbs size
+encryptor - package for encryption
+collector - in a next commits
 ## Crumb struct
 **Crumb** - is a main structure which contains payload and service info, as follows:
-
-![encrypted to crumbs]https://github.com/bla1z3198/crumble/blob/master/Pictures/encrypted%20to%20crumbs.png
-
 ```
 type Crumb struct {
-	FlowID int
-	Seq int
+	FlowID uint16
+	Seq uint16
 	Flags string
-	PayloadLen int
+	Lost uint16
 	Payload []byte
 	Padding []byte
 }
 ```
-
-**FlowID** is an ID of current data flow.  
+**FlowID** is an ID of current data flow.
 **Seq** is a position of crumb in a current flow id.
 **Flags** is an info about crumb. Fake or not fake.
-**Payloadlen** is a size of payload field.
+**Lost** is a number of crumbs in a flow, to request lost crumbles (if this need).
 **Payload** is a an data in array of bytes.
 **Padding** is an trash in array of bytes.
-
-For example crusher can create a random number of flows (goroutines), and each crumb
-have an unique **FlowID** and **Seq**. So, for ident correct sequence of **crumbs**, **collector** is need
-this service info (FlowID and Seq).
-
-## Random system
-Crusher uses random numbers in a **Flags** and **PayloadLen** define. With **90%** chance next flag
-will be "**DATA**", and with chance **10%** next flag will be "**FAKE**". **Payloadlen** now are full random
-integer number (it will have an adaptive random in next versions). **Padding** is a []byte array, which will be added to the end. It's length is also full random. This array always contains trash info.
-## Double-encryption
-After creating all **crumbs**, every of them will be encrypted in **Ecryption** function, and then send to destination **IP**. 
-## Send
-All previously encrypted **crumbs** will be sent over **TCP**.
+## Crusher
+Firstly, crusher define the bounds of encrypted parts (from, to). Then append crumb to array of
+crumbs. Later crusher checking remain of encrypted, because not always he can divide data into
+integer number of parts. And add "extra crumb" if it need, return array of crumbs ([]Crumb).
+## Wrapper
+This package just wraps crumbs into byte slice.
+## Randomizer
+This package generate random sizes for parts of data.
+## Encryptor
+This package encrypts data.

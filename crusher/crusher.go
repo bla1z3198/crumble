@@ -1,10 +1,14 @@
 package crusher
 
+import "fmt"
+
 var (
 	crumbs       []Crumb
 	padding      []byte
 	completed    []byte
 	payload_size uint16
+	from         uint16
+	to           uint16
 )
 
 type Crumb struct {
@@ -29,16 +33,34 @@ func Crush(s *Service) []Crumb {
 	padding = make([]byte, uint16(len(s.Encrypted))/s.Parts)
 
 	for i := range s.Parts {
+		if i == 0 {
+			from = 0
+			to = s.One + 1
+		} else {
+			from = i*s.One + 1
+			to = (i+1)*s.One + 1
+		}
 		crumbs = append(crumbs,
 			Crumb{
 				FlowID:  s.ID,
 				Seq:     i,
 				Flags:   s.Flg,
 				Lost:    0,
-				Payload: s.Encrypted[i+payload_size : i+payload_size+(s.One)],
-				Padding: padding[0 : len(padding)-int(s.Parts)],
+				Payload: s.Encrypted[from:to],
+				Padding: padding,
 			})
-		payload_size = s.One
+		fmt.Println("from:", from, " to:", to)
+	}
+	if len(s.Encrypted) > int(to) {
+		crumbs = append(crumbs,
+			Crumb{
+				FlowID:  s.ID,
+				Seq:     65535,
+				Flags:   "EXTR",
+				Lost:    0,
+				Payload: s.Encrypted[(s.Parts*s.One)+1:],
+				Padding: padding,
+			})
 	}
 	return crumbs
 }

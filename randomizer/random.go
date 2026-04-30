@@ -10,28 +10,30 @@ var (
 	one    int
 	max    *big.Int
 	chance *big.Int
-	last   int
 )
 
-func Random(len int) (int, int, int) {
+func Random(len int) (int, int) {
 	max = big.NewInt(100)
 	chance, _ = rand.Int(rand.Reader, max)
+	val := chance.Int64()
 
 	switch {
-	case chance.Int64() <= 70 && chance.Int64() >= 22:
-		parts = 10
-	case chance.Int64() <= 22 && chance.Int64() >= 6:
-		parts = 56
-	case chance.Int64() <= 6 && chance.Int64() >= 4:
-		parts = 2
-	case chance.Int64() <= 4 && chance.Int64() >= 0:
-		parts = 4
+	case val > 30:
+		parts = 7 + Parts(6)
+	case val > 80:
+		parts = 3 + Parts(4)
+	case val > 92:
+		parts = 15 + Parts(11)
 	default:
-		parts = 20
+		parts = 10 + Parts(5)
 	}
 
 	one = len / parts
-	last = len - one
 
-	return parts, one, last
+	return parts, one
+}
+
+func Parts(m int64) int {
+	part, _ := rand.Int(rand.Reader, big.NewInt(m))
+	return int(part.Int64())
 }

@@ -17,38 +17,52 @@ var (
 )
 
 func main() {
-	for {
-		f, err := os.Open("data.txt")
+	chanRaw := make(chan []byte, 1280)
+	chanEncrypted := make(chan []byte, 1280)
+	chanCrush := make(chan []crusher.Crumb)
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		f, err := os.Open("test/data.txt")
 		if err != nil {
 			fmt.Println("can't open data")
 		}
 		data, _ := io.ReadAll(f)
 		f.Close()
 
-		wg.Add(1)
-		go func(data *[]byte) {
-			parts, one, _ := randomizer.Random(len(*data))
-			encrypted := encryptor.Encryption(*data)
+		chanRaw <- data
+		fmt.Println("Raw - OK")
+	}()
 
-			info := crusher.Service{
-				Encrypted: encrypted,
-				ID:        uint16(950),
-				Flg:       "DATA",
-				Parts:     uint16(parts),
-				One:       uint16(one),
-			}
+	go func() {
+		defer wg.Done()
+		encrypted := encryptor.Encryption(<-chanRaw)
+		chanEncrypted <- encrypted
+		fmt.Println("Encrypt - OK")
+	}()
 
-			crumbs := crusher.Crush(&info)
-			for i := range crumbs {
-				wrapped := wrapper.Wrap(crumbs[i])
-				time.Sleep(time.Millisecond * 10)
-				fmt.Println(string(wrapped[36:]))
-			}
-			wg.Done()
-		}(&data)
-		wg.Wait()
-	}
-}
+	go func() {
+		defer wg.Done()
+		encrypted := <-chanEncrypted
+		parts, one := randomizer.Random(len(encrypted))
+		info := crusher.Service{
+			Encrypted: encrypted,
+			ID:        uint16(950),
+			Flg:       "DATA",
+			Parts:     uint16(parts),
+			One:       uint16(one),
+		}
+		chanCrush <- crusher.Crush(&info)
+	}()
 
-func Push(ready []byte, len int) {
+	go func() {
+		defer wg.Done()
+		crumbs := <-chanCrush
+		for i, crumb := range crumbs {
+			time.Sleep(time.Millisecond * 15)
+			fmt.Println(i, " crumb --->", string(wrapper.Wrap(crumb)[36:36+len(crumb.Payload)]))
+		}
+		fmt.Println("Wrap - OK")
+	}()
+	wg.Wait()
 }

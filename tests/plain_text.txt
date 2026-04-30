@@ -1,0 +1,1 @@
+Crumble adaptive test: This is a long sentence designed to verify that the adaptive segmenter correctly handles different input sizes without losing trailing bytes or introducing padding artifacts in the final assembly stage. Logic: Split by percent, wrap with HTTPS, encrypt, and reconstruct. No bytes should be left behind.
