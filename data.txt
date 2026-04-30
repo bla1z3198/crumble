@@ -1,0 +1,3 @@
+**FlowID** is an ID of current data flow.**Seq** is a position of crumb in a current flow id.**Flags** is an info about crumb. Fake or not fake.**Payloadlen** is a size of payload field.**Payload** is a an data in array of bytes.**Padding** is an trash in array of bytes.For example crusher can create a random number of flows (goroutines), and each crumb
+have an unique **FlowID** and **Seq**. So, for ident correct sequence of **crumbs**, **collector** is need
+this service info (FlowID and Seq). 
