@@ -1,4 +1,4 @@
-# Crumble v1t(testing accuracy of divide into parts)
+# Crumble v1.1(local)
 ## About
 Conditionally, origin packet divides into crumbs, which have 
 a random number of random sizes pieces of, previously, encrypted
@@ -42,3 +42,6 @@ This package just wraps crumbs into byte slice.
 This package generate random sizes for parts of data.
 ## Encryptor
 This package encrypts data.
+## Collector
+This package accepts inbounds.
+(now on local, but you can add your ip:port (i checked this on Moscow VPS))
