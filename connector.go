@@ -7,6 +7,7 @@ import (
 	"crusher/wrapper"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -23,7 +24,7 @@ func main() {
 	wg.Add(4)
 	go func() {
 		defer wg.Done()
-		f, err := os.Open("test/data.txt")
+		f, err := os.Open("tests/special_symbols.txt")
 		if err != nil {
 			fmt.Println("can't open data")
 		}
@@ -56,13 +57,17 @@ func main() {
 	}()
 
 	go func() {
+		conn, _ := net.Dial("udp", "127.0.0.1:5252")
+		defer conn.Close()
 		defer wg.Done()
 		crumbs := <-chanCrush
-		for i, crumb := range crumbs {
-			time.Sleep(time.Millisecond * 15)
-			fmt.Println(i, " crumb --->", string(wrapper.Wrap(crumb)[36:36+len(crumb.Payload)]))
+		for _, crumb := range crumbs {
+			jitter := time.Millisecond * 15
+			time.Sleep(jitter)
+			ready := wrapper.Wrap(crumb)
+			conn.Write(ready)
 		}
-		fmt.Println("Wrap - OK")
+		fmt.Println("Wrapped and send!")
 	}()
 	wg.Wait()
 }
