@@ -19,12 +19,11 @@ var (
 
 func main() {
 	chanRaw := make(chan []byte, 1280)
-	chanEncrypted := make(chan []byte, 1280)
 	chanCrush := make(chan []crusher.Crumb)
-	wg.Add(4)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		f, err := os.Open("tests/special_symbols.txt")
+		f, err := os.Open("tests/plain_text.txt")
 		if err != nil {
 			fmt.Println("can't open data")
 		}
@@ -37,17 +36,10 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		encrypted := encryptor.Encryption(<-chanRaw)
-		chanEncrypted <- encrypted
-		fmt.Println("Encrypt - OK")
-	}()
-
-	go func() {
-		defer wg.Done()
-		encrypted := <-chanEncrypted
-		parts, one := randomizer.Random(len(encrypted))
+		data := <-chanRaw
+		parts, one := randomizer.Random(len(data))
 		info := crusher.Service{
-			Encrypted: encrypted,
+			Encrypted: data,
 			ID:        uint16(950),
 			Flg:       "DATA",
 			Parts:     uint16(parts),
@@ -62,9 +54,9 @@ func main() {
 		defer wg.Done()
 		crumbs := <-chanCrush
 		for _, crumb := range crumbs {
-			jitter := time.Millisecond * 15
+			jitter := time.Millisecond * 4
 			time.Sleep(jitter)
-			ready := wrapper.Wrap(crumb)
+			ready := encryptor.Encrypt(wrapper.Wrap(crumb))
 			conn.Write(ready)
 		}
 		fmt.Println("Wrapped and send!")
