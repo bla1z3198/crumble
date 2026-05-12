@@ -12,7 +12,7 @@ var (
 )
 
 func Secret() ([32]byte, []byte) {
-	hash := sha256.Sum256([]byte("YOUR_SECRET_CRUMBLE_PASSWORD"))
+	hash := sha256.Sum256([]byte("dfghfghfgh568758!"))
 
 	n_hash := hash[:]
 	nonce = make([]byte, 12)

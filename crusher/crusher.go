@@ -1,7 +1,5 @@
 package crusher
 
-import "fmt"
-
 var (
 	crumbs       []Crumb
 	padding      []byte
@@ -45,19 +43,18 @@ func Crush(s *Service) []Crumb {
 				FlowID:  s.ID,
 				Seq:     i,
 				Flags:   s.Flg,
-				Lost:    0,
+				Lost:    s.Parts + 1,
 				Payload: s.Encrypted[from:to],
 				Padding: padding,
 			})
-		fmt.Println("from:", from, " to:", to)
 	}
 	if len(s.Encrypted) > int(to) {
 		crumbs = append(crumbs,
 			Crumb{
 				FlowID:  s.ID,
-				Seq:     65535,
-				Flags:   "EXTR",
-				Lost:    0,
+				Seq:     s.Parts,
+				Flags:   "LAST",
+				Lost:    s.Parts + 1,
 				Payload: s.Encrypted[(s.Parts*s.One)+1:],
 				Padding: padding,
 			})
