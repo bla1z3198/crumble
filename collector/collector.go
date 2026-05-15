@@ -55,10 +55,11 @@ func main() {
 	fmt.Println("crumble server on", ip+port, "...")
 
 	go Mux()
-	//go Tun()
+	go Tun()
 
 	for {
-		volume, _, _ := conn.ReadFromUDP(pack)
+		volume, user_addr, _ := conn.ReadFromUDP(pack)
+		fmt.Println("got pack from:", user_addr.String())
 		decode := encryptor.Encrypt(pack[:volume])
 		Unwrap(decode[25:])
 	}
@@ -92,14 +93,13 @@ func Mux() {
 }
 
 func Tun() {
+	conn, _ := net.Dial("udp", "192.168.1.153:888")
+	fmt.Println("connected to client....")
 	for {
-		select {
-		case <-done:
-			pack := <-completed
-			fmt.Println("RESULT ------>", string(pack))
-		default:
-			continue
-		}
+		duplex := <-completed
+		answer := []byte("hey connector, i am shaking your hand!")
+		answer = append(answer, duplex...)
+		conn.Write(answer)
 	}
 }
 
@@ -120,8 +120,8 @@ func Flow(ID uint16, ch chan LCrumb) {
 			for i := 0; i < len(ready); i++ {
 				result = append(result, ready[uint16(i)]...)
 			}
-			fmt.Println("ID", ID)
-			//completed <- result
+			fmt.Println("ID", ID, "LEN ->", len(result))
+			completed <- result
 			done <- ID
 			break
 		}
@@ -143,8 +143,8 @@ func Unwrap(crumb []byte) {
 func Init() (string, string, uint16, *net.UDPAddr) {
 	cfg := Config{
 		1280,
-		"127.0.0.1",
-		":5252",
+		"192.168.1.11",
+		":999",
 		1024,
 	}
 
@@ -154,7 +154,6 @@ func Init() (string, string, uint16, *net.UDPAddr) {
 	pipe = make(chan *Crumb, cfg.Buf)
 	flows = make(map[uint16]chan LCrumb, cfg.Buf)
 	done = make(chan uint16, cfg.Buf)
-	fmt.Println("init from collector.json:")
 
 	return cfg.IP, cfg.Port, cfg.MTU, addr
 }

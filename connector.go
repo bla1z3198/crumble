@@ -6,41 +6,39 @@ import (
 	"crusher/randomizer"
 	"crusher/wrapper"
 	"fmt"
-	"io"
 	"net"
-	"os"
 	"sync"
-	"time"
+
+	"github.com/songgao/water"
 )
 
 var (
-	wg sync.WaitGroup
-	mu sync.Mutex
+	wg    sync.WaitGroup
+	mu    sync.Mutex
+	tun   chan []byte
+	conn2 *net.UDPConn
 )
 
 func main() {
-	start := time.Now()
-	conn, _ := net.Dial("udp", "127.0.0.1:5252")
-	wg.Add(10000)
-	for i := 0; i < 10000; i++ {
+	addr, _ := net.ResolveUDPAddr("udp", "192.168.1.153:888")
+	conn2, _ = net.ListenUDP("udp", addr)
+
+	tun = make(chan []byte, 128)
+	conn, _ := net.Dial("udp", "192.168.1.11:999")
+	wg.Add(100)
+
+	go Tun()
+	go Listen()
+
+	for i := 0; i < 100; i++ {
 		go PipeLine(i, conn)
 	}
 	wg.Wait()
-	a := time.Since(start)
-	fmt.Println("elapsed time ->", a)
 }
 
 func PipeLine(i int, conn net.Conn) {
 	defer wg.Done()
-
-	mu.Lock()
-	f, err := os.Open("tests/plain_text.txt")
-	if err != nil {
-		fmt.Println("can't open data")
-	}
-	data, _ := io.ReadAll(f)
-	f.Close()
-	mu.Unlock()
+	data := <-tun
 
 	mu.Lock()
 	parts, one := randomizer.Random(len(data))
@@ -60,16 +58,42 @@ func PipeLine(i int, conn net.Conn) {
 	crumbs := crusher.Crush(&info)
 	mu.Unlock()
 
-	for i, crumb := range crumbs {
+	for _, crumb := range crumbs {
 		//jitter := time.Millisecond * 4
 		//time.Sleep(jitter)
 		mu.Lock()
 		wrapped := wrapper.Wrap(crumb)
 		ready := encryptor.Encrypt(wrapped)
-		fmt.Println("SHIPPED", 950+i)
-		fmt.Println("PAYLOAD", string(wrapped[36:]))
-		fmt.Println("Wrapped and send!", i)
 		conn.Write(ready)
 		mu.Unlock()
+	}
+}
+
+func Tun() {
+	config := water.Config{
+		DeviceType: water.TUN,
+	}
+
+	ifce, err := water.New(config)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("TUN:", ifce.Name())
+
+	buf := make([]byte, 1280)
+
+	for {
+		n, _ := ifce.Read(buf)
+		pkt := buf[:n]
+		tun <- pkt
+	}
+}
+
+func Listen() {
+	buf := make([]byte, 1280)
+	for {
+		volume, _, _ := conn2.ReadFromUDP(buf)
+		fmt.Println(string(buf[:volume]))
 	}
 }

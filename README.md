@@ -1,4 +1,9 @@
-# Crumble v1.1(local)
+# Crumble v1.4(duplex update)
+## Last v1.4(duplex update)
+Now crumble-server and crumble-client (collector.go and connector.go) can
+shake hands! At this moment this process is so simple, but in next (v1.5)
+i'll refactor it, and make better. Now code is so "dirty", because this is
+MVP version. 
 ## About
 Conditionally, origin packet divides into crumbs, which have 
 a random number of random sizes pieces of, previously, encrypted
