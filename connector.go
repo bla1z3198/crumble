@@ -7,82 +7,92 @@ import (
 	"crusher/wrapper"
 	"fmt"
 	"net"
-	"sync"
+	"time"
 
 	"github.com/songgao/water"
 )
 
 var (
-	wg    sync.WaitGroup
-	mu    sync.Mutex
+	connL *net.UDPConn
+	connD net.Conn
 	tun   chan []byte
-	conn2 *net.UDPConn
 )
 
-func main() {
-	addr, _ := net.ResolveUDPAddr("udp", "192.168.1.153:888")
-	conn2, _ = net.ListenUDP("udp", addr)
-
-	tun = make(chan []byte, 128)
-	conn, _ := net.Dial("udp", "192.168.1.11:999")
-	wg.Add(100)
-
-	go Tun()
-	go Listen()
-
-	for i := 0; i < 100; i++ {
-		go PipeLine(i, conn)
-	}
-	wg.Wait()
+type Cfg struct {
+	ip       string
+	port     string
+	password string
+	mtu      int
 }
 
-func PipeLine(i int, conn net.Conn) {
-	defer wg.Done()
-	data := <-tun
+func main() {
+	// Init
+	cfg := Init()
+	fmt.Println("destination ip:port", cfg.ip+cfg.port)
+	// Connect to the server
+	connD, _ = net.Dial("udp", cfg.ip+cfg.port)
+	fmt.Println("success, connected to:", cfg.ip+cfg.port)
+	// Start TUN interface
+	go Tun()
+	// Start duplex link
+	go Duplex()
+	// Init Flow ID
+	var ID uint16
+	// For loop, go Flows
+	for {
+		data := <-tun
+		go Flow(ID, data)
+		ID++
+		// Reset ID to zero
+		if ID == 65534 {
+			ID = 0
+		}
+	}
+}
 
-	mu.Lock()
-	parts, one := randomizer.Random(len(data))
-	mu.Unlock()
-
-	mu.Lock()
+func Flow(id uint16, data []byte) {
+	// Get info about divide
+	rand := make(chan []int, 1)
+	go randomizer.Random(len(data), rand)
+	r := <-rand
+	// Create struct about crushing, crush
 	info := crusher.Service{
 		Encrypted: data,
-		ID:        uint16(i),
+		ID:        id,
 		Flg:       "DATA",
-		Parts:     uint16(parts),
-		One:       uint16(one),
+		Parts:     uint16(r[0]),
+		One:       uint16(r[1]),
 	}
-	mu.Unlock()
+	crumbs := make(chan []crusher.Crumb)
+	go crusher.Crush(info, crumbs)
+	c := <-crumbs
+	// Wrap, encrypt, send
+	for _, crumb := range c {
+		jitter := time.Millisecond * 4
+		time.Sleep(jitter)
 
-	mu.Lock()
-	crumbs := crusher.Crush(&info)
-	mu.Unlock()
-
-	for _, crumb := range crumbs {
-		//jitter := time.Millisecond * 4
-		//time.Sleep(jitter)
-		mu.Lock()
 		wrapped := wrapper.Wrap(crumb)
 		ready := encryptor.Encrypt(wrapped)
-		conn.Write(ready)
-		mu.Unlock()
+		connD.Write(ready)
+		fmt.Println("N ->", id)
 	}
 }
 
 func Tun() {
+	// TUN cfg
 	config := water.Config{
 		DeviceType: water.TUN,
 	}
-
+	// New TUN
 	ifce, err := water.New(config)
 	if err != nil {
 		panic(err)
 	}
-
+	// TUN name
 	fmt.Println("TUN:", ifce.Name())
-
+	// Buffer for packets
 	buf := make([]byte, 1280)
-
+	// For loop: get data from TUN
 	for {
 		n, _ := ifce.Read(buf)
 		pkt := buf[:n]
@@ -90,10 +100,28 @@ func Tun() {
 	}
 }
 
-func Listen() {
+func Duplex() {
+	// Resolve and listen
+	self_ip := "192.168.1.153:9443"
+	addr, _ := net.ResolveUDPAddr("udp", self_ip)
+	connL, _ = net.ListenUDP("udp", addr)
+	// Buffer for packets
 	buf := make([]byte, 1280)
+	// For loop: get loopback from server
 	for {
-		volume, _, _ := conn2.ReadFromUDP(buf)
+		volume, _, _ := connL.ReadFromUDP(buf)
 		fmt.Println(string(buf[:volume]))
 	}
+}
+
+func Init() *Cfg {
+	tun = make(chan []byte, 256)
+
+	cfg := &Cfg{
+		"192.168.1.11:",
+		"9443",
+		"crumble",
+		1280,
+	}
+	return cfg
 }

@@ -1,14 +1,5 @@
 package crusher
 
-var (
-	crumbs       []Crumb
-	padding      []byte
-	completed    []byte
-	payload_size uint16
-	from         uint16
-	to           uint16
-)
-
 type Crumb struct {
 	FlowID  uint16
 	Seq     uint16
@@ -26,9 +17,11 @@ type Service struct {
 	One       uint16
 }
 
-func Crush(s *Service) []Crumb {
-	crumbs = make([]Crumb, 0)
-	padding = make([]byte, uint16(len(s.Encrypted))/s.Parts)
+func Crush(s Service, ch chan []Crumb) {
+	var from uint16
+	var to uint16
+	crumbs := make([]Crumb, 0)
+	padding := make([]byte, uint16(len(s.Encrypted))/s.Parts)
 
 	for i := range s.Parts {
 		if i == 0 {
@@ -53,11 +46,11 @@ func Crush(s *Service) []Crumb {
 			Crumb{
 				FlowID:  s.ID,
 				Seq:     s.Parts,
-				Flags:   "LAST",
+				Flags:   "EXTR",
 				Lost:    s.Parts + 1,
 				Payload: s.Encrypted[(s.Parts*s.One)+1:],
 				Padding: padding,
 			})
 	}
-	return crumbs
+	ch <- crumbs
 }
